@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
@@ -13,19 +14,8 @@ namespace Concurrentocracy.Tests.Controllers
         [TestMethod]
         public void Async_Should_Be_Faster_Than_Sync1()
         {
-            var stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-            Parallel.ForEach(Enumerable.Range(1, 500),
-                             i => HitIt("http://localhost:1268/Async"));
-            stopwatch.Stop();
-            var asyncTiming = stopwatch.ElapsedMilliseconds;
-
-            stopwatch.Start();
-            Parallel.ForEach(Enumerable.Range(1, 500),
-                             i => HitIt("http://localhost:1268/Sync"));
-            stopwatch.Stop();
-            var syncTiming = stopwatch.ElapsedMilliseconds;
+            var asyncTiming = HitAsyncAndGetTimeElapsed();
+            var syncTiming = HitSyncAndGetTimeElapsed();
 
             asyncTiming.Should().BeLessThan(syncTiming);
         }
@@ -33,35 +23,51 @@ namespace Concurrentocracy.Tests.Controllers
         [TestMethod]
         public void Async_Should_Be_Faster_Than_Sync2()
         {
-            var stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-            Parallel.ForEach(Enumerable.Range(1, 500),
-                             i => HitIt("http://localhost:1268/Sync"));
-            stopwatch.Stop();
-            var syncTiming = stopwatch.ElapsedMilliseconds;
-
-            stopwatch.Start();
-            Parallel.ForEach(Enumerable.Range(1, 500),
-                             i => HitIt("http://localhost:1268/Async"));
-            stopwatch.Stop();
-            var asyncTiming = stopwatch.ElapsedMilliseconds;
+            var syncTiming = HitSyncAndGetTimeElapsed();
+            var asyncTiming = HitAsyncAndGetTimeElapsed();
 
             asyncTiming.Should().BeLessThan(syncTiming);
         }
 
-        [TestMethod]
-        public void Run_Async()
+        private static long HitSyncAndGetTimeElapsed()
         {
-            Parallel.ForEach(Enumerable.Range(1, 1000),
-                             i => HitIt("http://localhost:1268/Async"));
+            return HitAndGetTimeElapsed(HitSync);
+        }
+
+        private static long HitAsyncAndGetTimeElapsed()
+        {
+            return HitAndGetTimeElapsed(HitAsync);
+        }
+
+        private static long HitAndGetTimeElapsed(Action hitAction)
+        {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            Parallel.ForEach(Enumerable.Range(1, 50), i => hitAction());
+            stopwatch.Stop();
+            return stopwatch.ElapsedMilliseconds;
         }
 
         [TestMethod]
-        public void Run_Sync()
+        public void Run_Async_Only()
         {
-            Parallel.ForEach(Enumerable.Range(1, 1000),
-                             i => HitIt("http://localhost:1268/Sync"));
+            Parallel.ForEach(Enumerable.Range(1, 50), i => HitAsync());
+        }
+
+        [TestMethod]
+        public void Run_Sync_Only()
+        {
+            Parallel.ForEach(Enumerable.Range(1, 50), i => HitSync());
+        }
+
+        private static void HitAsync()
+        {
+            HitIt("http://concurrentocracy.apphb.com/Async");
+        }
+
+        private static void HitSync()
+        {
+            HitIt("http://concurrentocracy.apphb.com/Sync");
         }
 
         private static void HitIt(string url)
