@@ -11,7 +11,9 @@ namespace Concurrentocracy.Controllers
         {
             return await Task.Factory.StartNew(() =>
                                                    {
-                                                       Thread.Sleep(1000);
+                                                       var random = new Random();
+                                                       var sleepPeriod = random.Next(500, 1000);
+                                                       Thread.Sleep(sleepPeriod);
                                                        return DateTime.Now;
                                                    });
         }
