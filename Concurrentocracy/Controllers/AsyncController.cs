@@ -8,10 +8,8 @@ namespace Concurrentocracy.Controllers
     {
         public async Task<DateTime> Get()
         {
-            var random = new Random();
-            var sleepPeriod = random.Next(500, 1000);
-            await Task.Delay(sleepPeriod);
-            await Task.Delay(sleepPeriod);
+            await Task.Delay(10);
+            await Task.Delay(10);
             return DateTime.Now;
         }
     }

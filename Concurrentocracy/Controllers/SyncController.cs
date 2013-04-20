@@ -8,10 +8,8 @@ namespace Concurrentocracy.Controllers
     {
         public DateTime Get()
         {
-            var random = new Random();
-            var sleepPeriod = random.Next(500, 1000);
-            Thread.Sleep(sleepPeriod);
-            Thread.Sleep(sleepPeriod);
+            Thread.Sleep(10);
+            Thread.Sleep(10);
             return DateTime.Now;
         }
     }
