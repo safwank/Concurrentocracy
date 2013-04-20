@@ -11,6 +11,7 @@ namespace Concurrentocracy.Controllers
             var random = new Random();
             var sleepPeriod = random.Next(500, 1000);
             await Task.Delay(sleepPeriod);
+            await Task.Delay(sleepPeriod);
             return DateTime.Now;
         }
     }
