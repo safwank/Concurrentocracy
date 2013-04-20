@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -43,7 +44,7 @@ namespace Concurrentocracy.Tests.Controllers
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
-            Parallel.ForEach(Enumerable.Range(1, 50), i => hitAction());
+            QueueHits(hitAction);
             stopwatch.Stop();
             return stopwatch.ElapsedMilliseconds;
         }
@@ -51,13 +52,24 @@ namespace Concurrentocracy.Tests.Controllers
         [TestMethod]
         public void Run_Async_Only()
         {
-            Parallel.ForEach(Enumerable.Range(1, 50), i => HitAsync());
+            QueueHits(HitAsync);
         }
 
         [TestMethod]
         public void Run_Sync_Only()
         {
-            Parallel.ForEach(Enumerable.Range(1, 50), i => HitSync());
+            QueueHits(HitSync);
+        }
+
+        private static void QueueHits(Action hitAction)
+        {
+            var tasks = new List<Task>();
+            Enumerable.Range(1, 1000).ToList().ForEach(i =>
+                                                         {
+                                                             var task = Task.Factory.StartNew(hitAction);
+                                                             tasks.Add(task);
+                                                         });
+            Task.WaitAll(tasks.ToArray());
         }
 
         private static void HitAsync()
