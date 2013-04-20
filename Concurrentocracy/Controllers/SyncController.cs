@@ -8,7 +8,7 @@ namespace Concurrentocracy.Controllers
     {
         public DateTime Get()
         {
-            Thread.Sleep(2000);
+            Thread.Sleep(1000);
             return DateTime.Now;
         }
     }

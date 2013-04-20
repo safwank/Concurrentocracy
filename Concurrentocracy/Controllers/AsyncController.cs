@@ -11,7 +11,7 @@ namespace Concurrentocracy.Controllers
         {
             return await Task.Factory.StartNew(() =>
                                                    {
-                                                       Thread.Sleep(2000);
+                                                       Thread.Sleep(1000);
                                                        return DateTime.Now;
                                                    });
         }
