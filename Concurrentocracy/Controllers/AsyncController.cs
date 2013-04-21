@@ -6,11 +6,11 @@ namespace Concurrentocracy.Controllers
 {
     public class AsyncController : ApiController
     {
-        public async Task<DateTime> Get()
+        public async Task<string> Get()
         {
-            await Task.Delay(10);
-            await Task.Delay(10);
-            return DateTime.Now;
+            await Task.Delay(50);
+            await Task.Delay(50);
+            return "async";
         }
     }
 }

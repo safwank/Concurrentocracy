@@ -6,11 +6,11 @@ namespace Concurrentocracy.Controllers
 {
     public class SyncController : ApiController
     {
-        public DateTime Get()
+        public string Get()
         {
-            Thread.Sleep(10);
-            Thread.Sleep(10);
-            return DateTime.Now;
+            Thread.Sleep(50);
+            Thread.Sleep(50);
+            return "sync";
         }
     }
 }

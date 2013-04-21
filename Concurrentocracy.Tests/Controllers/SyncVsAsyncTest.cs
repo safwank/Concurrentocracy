@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using System.Collections.Concurrent;
+using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RestSharp;
 using System;
@@ -13,11 +14,16 @@ namespace Concurrentocracy.Tests.Controllers
     [TestClass]
     public class SyncVsAsyncTest
     {
+        private const string BaseUrl = "http://concurrentocracy.apphb.com/";
+
         [TestMethod]
         public void Remote_Async_Should_Be_Faster()
         {
-            var asyncTiming = HitAsyncAndGetTimeElapsed();
             var syncTiming = HitSyncAndGetTimeElapsed();
+            Console.WriteLine(syncTiming);
+
+            var asyncTiming = HitAsyncAndGetTimeElapsed();
+            Console.WriteLine(asyncTiming);
 
             asyncTiming.Should().BeLessThan(syncTiming);
         }
@@ -32,13 +38,51 @@ namespace Concurrentocracy.Tests.Controllers
             return HitAndGetTimeElapsed(HitAsync);
         }
 
-        private static long HitAndGetTimeElapsed(Action hitAction)
+        private static long HitAndGetTimeElapsed(Func<string> hitFunc)
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
-            QueueHits(hitAction);
+            QueueHits(hitFunc);
             stopwatch.Stop();
             return stopwatch.ElapsedMilliseconds;
+        }
+
+        [TestMethod]
+        public void Remote_Async_Should_Have_Higher_Throughput()
+        {
+            var asyncThroughput = HitAsyncAndGetCount();
+            Console.WriteLine(asyncThroughput);
+
+            var syncThroughput = HitSyncAndGetCount();
+            Console.WriteLine(syncThroughput);
+
+            asyncThroughput.Should().BeGreaterThan(syncThroughput);
+        }
+
+        private static int HitAsyncAndGetCount()
+        {
+            return HitAndGetNumberOfCompletedRequests(HitAsync);
+        }
+
+        private static int HitSyncAndGetCount()
+        {
+            return HitAndGetNumberOfCompletedRequests(HitSync);
+        }
+
+        private static int HitAndGetNumberOfCompletedRequests(Func<string> hitFunc)
+        {
+            var responses = new BlockingCollection<string>();
+            var tasks = new List<Task>();
+            Enumerable.Range(1, 1000)
+                      .ToList()
+                      .ForEach(i =>
+                                   {
+                                       var task = Task.Run(hitFunc)
+                                                      .ContinueWith(response => responses.Add(response.Result));
+                                       tasks.Add(task);
+                                   });
+            Task.WaitAll(tasks.ToArray(), TimeSpan.FromSeconds(30));
+            return responses.Count;
         }
 
         [TestMethod]
@@ -53,44 +97,47 @@ namespace Concurrentocracy.Tests.Controllers
             QueueHits(HitSync);
         }
 
-        private static void QueueHits(Action hitAction)
+        private static void QueueHits(Func<string> hitFunc)
         {
             var tasks = new List<Task>();
-            Enumerable.Range(1, 1000).ToList().ForEach(i =>
-                                                           {
-                                                               var task = Task.Factory.StartNew(hitAction);
-                                                               tasks.Add(task);
-                                                           });
+            Enumerable.Range(1, 100)
+                      .ToList()
+                      .ForEach(i =>
+                                   {
+                                       var task = Task.Run(hitFunc);
+                                       tasks.Add(task);
+                                   });
             Task.WaitAll(tasks.ToArray());
         }
 
-        private static void HitAsync()
+        private static string HitAsync()
         {
-            HitIt("http://concurrentocracy.apphb.com/Async");
+            return HitIt(string.Concat(BaseUrl, "Async"));
         }
 
-        private static void HitSync()
+        private static string HitSync()
         {
-            HitIt("http://concurrentocracy.apphb.com/Sync");
+            return HitIt(string.Concat(BaseUrl, "Sync"));
         }
 
-        private static void HitIt(string url)
+        private static string HitIt(string url)
         {
             var restClient = new RestClient(url);
             var request = new RestRequest(Method.GET);
-            restClient.Get(request);
+            var response = restClient.Get(request);
+            return response.Content;
         }
 
         [TestMethod]
         public void Local_Async_Should_Be_Faster()
         {
-            var iterations = Enumerable.Range(1, 10000).ToList();
+            var iterations = Enumerable.Range(1, 100).ToList();
 
             var tasks = new List<Task>();
             var stopWatch = Stopwatch.StartNew();
             iterations.ForEach(i =>
                                    {
-                                       var task = Task.Delay(1);
+                                       var task = Task.Run(async () => await Task.Delay(1));
                                        tasks.Add(task);
                                    });
             Task.WaitAll(tasks.ToArray());
